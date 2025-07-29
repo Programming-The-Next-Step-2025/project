@@ -1,0 +1,33 @@
+---
+title: "Air Quality App Report"
+output:
+  html_document:
+    df_print: paged
+vignette: "%\\VignetteIndexEntry{Air Quality App Report} %\\VignetteEngine{knitr::rmarkdown}
+  %\\VignetteEncoding{UTF-8}\n"
+---
+
+## Introduction
+
+This report describes the development of an interactive Shiny app that visualizes PM2.5 air pollution levels across countries.
+
+## Data
+
+The dataset contains PM2.5 concentration levels from 2010–2019 by country, sourced from OpenAQ.
+
+## App Features
+
+- Dropdown to select a country
+- Time-series plot of PM2.5 values
+- Interactive map to select cities and auto-update the graph
+- Linear and smoothed trendlines
+
+## Implementation Notes
+
+- Built using `shiny`, `ggplot2`, and `leaflet`
+- Data cleaned and loaded from CSV using `read.csv()`
+
+## Screenshot
+
+```{r, echo=FALSE, out.width="80%"}
+knitr::include_graphics("vignettes/screenshot.png")
