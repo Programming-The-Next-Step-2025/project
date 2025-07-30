@@ -1,14 +1,9 @@
 #' Load and Clean PM2.5 Data
 #'
 #' This function reads and cleans PM2.5 air quality data from a CSV file
-#' bundled with the package. It filters out invalid city entries and ensures
-#' cities have multiple observations and time points.
+#' bundled with the package. It assigns placeholder coordinates and filters out missing data.
 #'
 #' @return A data frame of cleaned PM2.5 observations.
-#' @examples
-#' \dontrun{
-#'   pm25_data <- load_pm25_data()
-#' }
 #' @export
 load_pm25_data <- function() {
   csv_path <- system.file("extdata", "openaq.csv", package = "appforair")
@@ -17,20 +12,21 @@ load_pm25_data <- function() {
     stop("File 'openaq.csv' not found. Make sure it exists in inst/extdata/ before building the package.")
   }
 
-  data <- read.csv(csv_path, sep = ";", stringsAsFactors = FALSE)
+  data <- read.csv(csv_path, sep = ",", stringsAsFactors = FALSE)
 
-  coords <- strsplit(data$Coordinates, ",")
-  data$Latitude <- sapply(coords, function(x) as.numeric(x[1]))
-  data$Longitude <- sapply(coords, function(x) as.numeric(x[2]))
-  data$LastUpdated <- as.POSIXct(data$Last.Updated, format = "%Y-%m-%dT%H:%M:%S", tz = "UTC")
+  # Rename PM2.5 column
+  names(data)[4] <- "PM25"
 
-  pm25 <- data[data$Pollutant == "PM2.5" & !is.na(data$City) & data$City != "", ]
-  pm25 <- pm25[grepl("[A-Za-z]", pm25$City), ]
+  # Basic cleaning
+  data <- data[!is.na(data$PM25) & data$PM25 != "", ]
+  data$PM25 <- as.numeric(data$PM25)
+  data$Year <- as.numeric(data$Year)
 
-  city_counts <- table(pm25$City)
-  multi_obs <- names(city_counts[city_counts > 1])
-  multi_time <- aggregate(LastUpdated ~ City, pm25, function(x) length(unique(x)))
-  valid_cities <- intersect(multi_obs, multi_time$City[multi_time$LastUpdated > 1])
+  # Generate dummy location info for mapping
+  set.seed(123)
+  data$City <- data$Entity
+  data$Latitude <- jitter(rep(48.85, nrow(data)))
+  data$Longitude <- jitter(rep(2.35, nrow(data)))
 
-  pm25[pm25$City %in% valid_cities, ]
+  return(data)
 }
