@@ -11,11 +11,5 @@ A data frame of cleaned PM2.5 observations.
 }
 \description{
 This function reads and cleans PM2.5 air quality data from a CSV file
-bundled with the package. It filters out invalid city entries and ensures
-cities have multiple observations and time points.
-}
-\examples{
-\dontrun{
-  pm25_data <- load_pm25_data()
-}
+bundled with the package. It assigns placeholder coordinates and filters out missing data.
 }
