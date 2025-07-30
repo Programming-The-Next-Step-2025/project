@@ -1,3 +1,5 @@
+#' Launch the PM2.5 Shiny App
+#'
 #' @import shiny
 #' @import shinydashboard
 #' @import leaflet
@@ -5,23 +7,10 @@
 #' @import utils
 #' @import ggplot2
 #' @export
-
 startApp <- function() {
 
-  # Load and clean the data
-  csv_path <- system.file("extdata", "openaq.csv", package = "appforair")
-  air_data <- read.csv(csv_path, sep = ",", header = TRUE, stringsAsFactors = FALSE)
-  names(air_data)[4] <- "PM25"
-
-  #remove rows with missing PM2.5 or City
-  air_data <- air_data[!is.na(air_data$PM25) & air_data$PM25 != "", ]
-  air_data$PM25 <- as.numeric(air_data$PM25)
-  air_data$Year <- as.numeric(air_data$Year)
-
-  set.seed(123)
-  air_data$City <- air_data$Entity  # use Entity as City placeholder
-  air_data$Latitude <- jitter(rep(48.85, nrow(air_data)))  # e.g. near Paris
-  air_data$Longitude <- jitter(rep(2.35, nrow(air_data)))  # e.g. near Paris
+  # Load the cleaned PM2.5 data
+  air_data <- load_pm25_data()
 
   # UI
   ui <- dashboardPage(
