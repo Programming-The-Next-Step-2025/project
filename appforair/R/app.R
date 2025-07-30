@@ -7,10 +7,6 @@
 #' @export
 
 startApp <- function() {
-  library(shiny)
-  library(shinydashboard)
-  library(leaflet)
-  library(ggplot2)
 
   # Load and clean the data
   csv_path <- system.file("extdata", "openaq.csv", package = "appforair")
