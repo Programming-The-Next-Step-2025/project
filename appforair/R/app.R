@@ -4,6 +4,7 @@
 #' @import sf
 #' @import utils
 #' @import ggplot2
+#' @export
 
 startApp <- function() {
   library(shiny)
@@ -12,7 +13,8 @@ startApp <- function() {
   library(ggplot2)
 
   # Load and clean the data
-  air_data <- read.csv("inst/extdata/openaq.csv", sep = ",", header = TRUE, stringsAsFactors = FALSE)
+  csv_path <- system.file("extdata", "openaq.csv", package = "appforair")
+  air_data <- read.csv(csv_path, sep = ",", header = TRUE, stringsAsFactors = FALSE)
   names(air_data)[4] <- "PM25"
 
   #remove rows with missing PM2.5 or City
