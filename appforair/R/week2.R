@@ -8,12 +8,8 @@
 #'
 #' @examples
 #' if (interactive()) {
-#'   startApp()
+#'   appforair::startApp()
 #' }
-#' @export
-startApp <- function() {
-  shinyApp(ui = ui, server = server)
-}
-
-
-
+#'
+#' @note This file is for documentation only. See `startApp()` in startApp.R for full implementation.
+NULL
