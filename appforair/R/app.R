@@ -1,16 +1,26 @@
-#' Launch the PM2.5 Shiny App
-#'
 #' @import shiny
 #' @import shinydashboard
 #' @import leaflet
-#' @import sf
-#' @import utils
 #' @import ggplot2
 #' @export
-startApp <- function() {
 
-  # Load the cleaned PM2.5 data
+startApp <- function() {
+  # Load cleaned PM2.5 data
   air_data <- load_pm25_data()
+
+  # Load country coordinates
+  coords_path <- system.file("extdata", "country_coordinates.csv", package = "appforair")
+  coords <- read.csv(coords_path, stringsAsFactors = FALSE)
+
+  # Merge coordinates into the air quality data
+  air_data <- merge(air_data, coords, by.x = "Entity", by.y = "Entity", all.x = TRUE)
+
+  # Rename coordinate columns if needed
+  colnames(air_data)[colnames(air_data) == "Latitude.y"] <- "Latitude"
+  colnames(air_data)[colnames(air_data) == "Longitude.y"] <- "Longitude"
+
+  # Remove rows with missing values after merging
+  air_data <- air_data[!is.na(air_data$PM25) & !is.na(air_data$Latitude) & !is.na(air_data$Longitude), ]
 
   # UI
   ui <- dashboardPage(
@@ -63,7 +73,9 @@ startApp <- function() {
     })
 
     output$pm25_map <- renderLeaflet({
-      leaflet(air_data) %>%
+      data <- filtered()
+
+      leaflet(data) %>%
         addTiles() %>%
         addCircleMarkers(
           lng = ~Longitude,
@@ -71,8 +83,13 @@ startApp <- function() {
           layerId = ~City,
           label = ~paste(City, "<br>PM2.5:", round(PM25, 1)),
           color = "darkblue",
-          radius = 4,
+          radius = 6,
           fillOpacity = 0.7
+        ) %>%
+        setView(
+          lng = mean(data$Longitude, na.rm = TRUE),
+          lat = mean(data$Latitude, na.rm = TRUE),
+          zoom = 4
         )
     })
 
