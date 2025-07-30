@@ -3,7 +3,6 @@
 #' @import leaflet
 #' @import ggplot2
 #' @export
-
 startApp <- function() {
   # Load cleaned PM2.5 data
   air_data <- load_pm25_data()
@@ -12,14 +11,16 @@ startApp <- function() {
   coords_path <- system.file("extdata", "country_coordinates.csv", package = "appforair")
   coords <- read.csv(coords_path, stringsAsFactors = FALSE)
 
-  # Merge coordinates into the air quality data
-  air_data <- merge(air_data, coords, by.x = "Entity", by.y = "Entity", all.x = TRUE)
+  # Merge coordinates into air quality data
+  air_data <- merge(air_data, coords, by = "Entity", all.x = TRUE)
 
-  # Rename coordinate columns if needed
-  colnames(air_data)[colnames(air_data) == "Latitude.y"] <- "Latitude"
-  colnames(air_data)[colnames(air_data) == "Longitude.y"] <- "Longitude"
+  # Rename coordinate columns if duplicated (from merge)
+  if ("Latitude.y" %in% names(air_data)) {
+    air_data$Latitude <- air_data$Latitude.y
+    air_data$Longitude <- air_data$Longitude.y
+  }
 
-  # Remove rows with missing values after merging
+  # Remove incomplete records
   air_data <- air_data[!is.na(air_data$PM25) & !is.na(air_data$Latitude) & !is.na(air_data$Longitude), ]
 
   # UI
@@ -37,7 +38,7 @@ startApp <- function() {
           plotOutput("pm25_plot")
         ),
         box(
-          title = "Click a City on the Map",
+          title = "Click a Country on the Map",
           width = 6,
           status = "info",
           leafletOutput("pm25_map", height = 400)
@@ -49,14 +50,13 @@ startApp <- function() {
   # Server
   server <- function(input, output, session) {
     filtered <- reactive({
+      req(input$selected_country)
       air_data[air_data$Entity == input$selected_country, ]
     })
 
     output$pm25_plot <- renderPlot({
       data <- filtered()
       data <- data[order(data$Year), ]
-      data <- data[!is.na(data$Year) & !is.na(data$PM25), ]
-
       if (nrow(data) == 0) {
         plot.new()
         text(0.5, 0.5, "No data available", cex = 1.5)
@@ -73,35 +73,46 @@ startApp <- function() {
     })
 
     output$pm25_map <- renderLeaflet({
-      data <- filtered()
+      summary_data <- aggregate(cbind(Latitude, Longitude) ~ Entity, air_data, mean)
 
-      leaflet(data) %>%
+      leaflet(summary_data) %>%
         addTiles() %>%
         addCircleMarkers(
-          lng = ~Longitude,
-          lat = ~Latitude,
-          layerId = ~City,
-          label = ~paste(City, "<br>PM2.5:", round(PM25, 1)),
-          color = "darkblue",
+          lng = ~Longitude, lat = ~Latitude,
+          label = ~Entity,
+          layerId = ~Entity,
           radius = 6,
-          fillOpacity = 0.7
-        ) %>%
-        setView(
-          lng = mean(data$Longitude, na.rm = TRUE),
-          lat = mean(data$Latitude, na.rm = TRUE),
-          zoom = 4
+          fillColor = "blue",
+          fillOpacity = 0.7,
+          color = "darkblue"
         )
     })
 
+    # Update input and zoom map when clicking
     observeEvent(input$pm25_map_marker_click, {
-      clicked_city <- input$pm25_map_marker_click$id
-      if (!is.null(clicked_city)) {
-        matched_country <- air_data$Entity[air_data$City == clicked_city][1]
-        updateSelectInput(session, "selected_country", selected = matched_country)
-      }
+      clicked_country <- input$pm25_map_marker_click$id
+      updateSelectInput(session, "selected_country", selected = clicked_country)
+
+      country_data <- air_data[air_data$Entity == clicked_country, ]
+      lat <- mean(country_data$Latitude, na.rm = TRUE)
+      lng <- mean(country_data$Longitude, na.rm = TRUE)
+
+      leafletProxy("pm25_map") %>%
+        setView(lng = lng, lat = lat, zoom = 5)
+    })
+
+    # Zoom map when changing dropdown
+    observeEvent(input$selected_country, {
+      country_data <- air_data[air_data$Entity == input$selected_country, ]
+      lat <- mean(country_data$Latitude, na.rm = TRUE)
+      lng <- mean(country_data$Longitude, na.rm = TRUE)
+
+      leafletProxy("pm25_map") %>%
+        setView(lng = lng, lat = lat, zoom = 5)
     })
   }
 
-  # Launch app
   shinyApp(ui = ui, server = server)
 }
+
+
